@@ -16,7 +16,7 @@ object HardwareBinder extends App{
   def run[SA, SB, H](f: ABSTRACT_HW[SA, SB, H])(s: State[SA], h: HAL[H]) = {
     f(s, h)
   }
-  
+
   run(st1)(s, h)
     .andThen(st2)(h)
 }
@@ -26,7 +26,7 @@ case class State[+A](get: List[A]) {
     State(b :: get)
   }
 
-  def andThen[B](f: ABSTRACT_HW[A, B, State[B]])(h: HAL[State[B]]): State[B] = {
+  def andThen[B, C >: A](f: ABSTRACT_HW[C, B, State[B]])(h: HAL[State[B]]): State[B] = {
     f(this, h)
   }
 
