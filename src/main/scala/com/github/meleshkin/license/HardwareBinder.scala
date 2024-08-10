@@ -9,16 +9,35 @@ object HardwareBinder extends App{
   val st1:ABSTRACT_HW[String, String, State[String]] = (s, h) => h.updateWithCpuInfo(s)
   val st2: ABSTRACT_HW[String, String, State[String]]  = (s, h) => h.updateWithGraphicCards(s)
 
-  val h: HAL[State[String]] = new MockHal
-  val s: State[String] = State(Nil)
 
+  def combine[S](a: ABSTRACT_HW[S, S, State[S]], b: ABSTRACT_HW[S, S, State[S]]): ABSTRACT_HW[S, S, State[S]] = (s, h) => {
+    b(a(s, h), h)
+  }
+  def sequence[S](s: List[ABSTRACT_HW[S, S, State[S]]]): ABSTRACT_HW[S, S, State[S]] = {
+    s.reduce((z, acc) => combine(z, acc))
+  }
+
+  val st3: ABSTRACT_HW[String, String, State[String]] = combine(st1, st2)
 
   def run[SA, SB, H](f: ABSTRACT_HW[SA, SB, H])(s: State[SA], h: HAL[H]) = {
     f(s, h)
   }
 
+  def run2[SA, SB, H](f: ABSTRACT_HW[SA, SB, H])(s: State[SA], h: HAL[H]) = {
+    f(s, h)
+  }
+
+
+  val h: HAL[State[String]] = new MockHal
+  val s: State[String] = State(Nil)
+
+  /*
   run(st1)(s, h)
     .andThen(st2)(h)
+   */
+
+  //run2(st3)(s, h)
+  run2(sequence(st1 :: st2 :: Nil))(s, h)
 }
 
 case class State[+A](get: List[A]) {
