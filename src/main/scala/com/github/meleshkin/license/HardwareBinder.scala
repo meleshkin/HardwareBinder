@@ -2,6 +2,8 @@ package com.github.meleshkin.license
 
 import com.github.meleshkin.license.HardwareBinder.ABSTRACT_HW
 
+import java.security.MessageDigest
+
 object HardwareBinder extends App{
   type ABSTRACT_HW[SA, SB, H] = (State[SA], HAL[H]) => State[SB]
   type HW = ABSTRACT_HW[String, String, State[String]]
@@ -37,9 +39,10 @@ object HardwareBinder extends App{
    */
 
   //run2(st3)(s, h)
-  run2(sequence(st1 :: st2 :: Nil))(s, h)
+  val finalState: State[String] = run2(sequence(st1 :: st2 :: Nil))(s, h)
+  val bytes = MD5Digest.bytes(finalState)
+  println(bytes.mkString(" "))
 }
-
 case class State[+A](get: List[A]) {
   def update[B >: A](b: B): State[B] = {
     State(b :: get)
@@ -57,8 +60,8 @@ case object State {
 trait HAL[S] {
   def updateWithCpuInfo(state: S): S
   def updateWithGraphicCards(state: S): S
-}
 
+}
 
 class MockHal extends HAL[State[String]] {
   override def updateWithCpuInfo(state: State[String]): State[String] = {
@@ -71,5 +74,17 @@ class MockHal extends HAL[State[String]] {
     println("Update With Graphic cards")
     val s: String = "Some videocard"
     state.update(s)
+  }
+}
+
+object MD5Digest {
+  def digest(state: State[String]): MessageDigest = {
+    val md = MessageDigest.getInstance("MD5")
+    state.get.foreach(x => md.update(x.getBytes()))
+    md
+  }
+
+  def bytes(state: State[String]): Array[Byte] = {
+    digest(state).digest()
   }
 }
