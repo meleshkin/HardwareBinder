@@ -8,8 +8,9 @@ object HardwareBinder extends App{
   type ABSTRACT_HW[SA, SB, H] = (State[SA], HAL[H]) => State[SB]
   type HW = ABSTRACT_HW[String, String, State[String]]
 
-  val st1:ABSTRACT_HW[String, String, State[String]] = (s, h) => h.updateWithCpuInfo(s)
+  val st1: ABSTRACT_HW[String, String, State[String]] = (s, h) => h.updateWithCpuInfo(s)
   val st2: ABSTRACT_HW[String, String, State[String]]  = (s, h) => h.updateWithGraphicCards(s)
+  val st3: ABSTRACT_HW[String, String, State[String]] = (s, h) => h.updateWithNetworkInterfaces(s)
 
 
   def combine[S](a: ABSTRACT_HW[S, S, State[S]], b: ABSTRACT_HW[S, S, State[S]]): ABSTRACT_HW[S, S, State[S]] = (s, h) => {
@@ -19,7 +20,7 @@ object HardwareBinder extends App{
     s.reduce((z, acc) => combine(z, acc))
   }
 
-  val st3: ABSTRACT_HW[String, String, State[String]] = combine(st1, st2)
+  //val st: ABSTRACT_HW[String, String, State[String]] = combine(st1, st2)
 
   def run[SA, SB, H](f: ABSTRACT_HW[SA, SB, H])(s: State[SA], h: HAL[H]) = {
     f(s, h)
@@ -39,7 +40,7 @@ object HardwareBinder extends App{
    */
 
   //run2(st3)(s, h)
-  val finalState: State[String] = run2(sequence(st1 :: st2 :: Nil))(s, h)
+  val finalState: State[String] = run2(sequence(st1 :: st2 :: st3 :: Nil))(s, h)
   val bytes = MD5Digest.bytes(finalState)
   println(bytes.mkString(" "))
 }
@@ -61,6 +62,8 @@ trait HAL[S] {
   def updateWithCpuInfo(state: S): S
   def updateWithGraphicCards(state: S): S
 
+  def updateWithNetworkInterfaces(state: S): S
+
 }
 
 class MockHal extends HAL[State[String]] {
@@ -74,6 +77,13 @@ class MockHal extends HAL[State[String]] {
     println("Update With Graphic cards")
     val s: String = "Some videocard"
     state.update(s)
+  }
+
+  override def updateWithNetworkInterfaces(state: State[String]): State[String] = {
+    println("Update with NI")
+    val macs = "00:01:02:A1:B2:C3" :: "00:01:02:A1:B2:C4" :: "00:01:02:A1:B2:C5" :: Nil
+    val sorted = macs.sorted
+    state.update(sorted.mkString(","))
   }
 }
 
